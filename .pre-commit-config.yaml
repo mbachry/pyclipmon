@@ -1,0 +1,13 @@
+repos:
+- repo: https://github.com/psf/black
+  rev: 24.10.0
+  hooks:
+    - id: black
+      args: [--config, pyproject.toml]
+      exclude: "zwlr_data_control/"
+- repo: https://github.com/charliermarsh/ruff-pre-commit
+  rev: v0.8.0
+  hooks:
+    - id: ruff
+      args: [--fix]
+      exclude: "zwlr_data_control/"
