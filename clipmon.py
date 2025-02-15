@@ -3,8 +3,11 @@ import contextlib
 import logging
 import os
 import select
+import sqlite3
 import sys
 import time
+from functools import cache
+from pathlib import Path
 
 import psutil
 from pywayland.client import Display
@@ -14,6 +17,15 @@ from zwlr_data_control import zwlr_data_control_manager_v1
 
 SENTINEL = '__PYCLIPMON__'
 RECEIVE_TIMEOUT_S = 2
+DB_DIR = Path.home() / '.local' / 'share' / 'pyclipmon'
+DB_SCHEMA = """
+    CREATE TABLE IF NOT EXISTS history(
+      id INTEGER PRIMARY KEY NOT NULL,
+      selection TEXT NOT NULL,
+      timestamp REAL NOT NULL,
+      text TEXT NOT NULL
+    )"""
+MAX_HISTORY = 200
 
 display = None
 manager_proxy = None
@@ -79,6 +91,7 @@ class Selection:
                 os.close(rd)
 
         self.log.debug('done saving')
+        self.save_history()
         self._send_offers()
 
     def _send_offers(self):
@@ -122,6 +135,13 @@ class Selection:
     def handle_cancelled(self, source_proxy):
         source_proxy.destroy()
         self.log.debug('cancelled')
+
+    def save_history(self):
+        for mime_type in ('text/plain;charset=utf-8', 'text/plain', 'STRING'):
+            text = self.data.get(mime_type, '').strip()
+            if text:
+                save_history(self.name, text)
+                return
 
 
 def read_from_pipe(fd):
@@ -185,6 +205,50 @@ def setup_wayland():
         device_proxy.dispatcher['primary_selection'] = primary.handle_selection
 
         yield display
+
+
+@cache
+def get_history_db():
+    DB_DIR.mkdir(exist_ok=True)
+    path = DB_DIR / 'history.sqlite3'
+    conn = sqlite3.connect(path)
+    conn.execute(DB_SCHEMA)
+    return conn
+
+
+def save_history(selection, text):
+    match selection:
+        case 'clipboard':
+            selection_code = 'c'
+        case 'primary':
+            selection_code = 'p'
+        case _:
+            raise AssertionError(f'invalid selection: {selection}')
+    conn = get_history_db()
+    conn.execute(
+        """
+            INSERT INTO history (timestamp, selection, text)
+            VALUES(unixepoch('subsec'), ?, ?)
+            """,
+        (selection_code, text)
+    )
+    conn.commit()
+    trim_history()
+
+
+def trim_history():
+    conn = get_history_db()
+    conn.execute(
+        """
+            DELETE FROM history
+            WHERE timestamp < (
+              SELECT timestamp FROM history
+              ORDER BY timestamp DESC
+              LIMIT 1 OFFSET ?)
+            """,
+        (MAX_HISTORY,)
+    )
+    conn.commit()
 
 
 def main():

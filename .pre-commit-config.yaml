@@ -11,3 +11,9 @@ repos:
     - id: ruff
       args: [--fix]
       exclude: "zwlr_data_control/"
+repos:
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: v17.0.6
+  hooks:
+  - id: clang-format
+    types_or: [c]

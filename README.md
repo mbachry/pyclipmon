@@ -30,3 +30,24 @@ ExecStart=%h/.local/bin/pyclipmon
 [Install]
 WantedBy=graphical-session.target
 ```
+
+## Clipboard history
+
+In addition to saving current clipboard `pyclipmon` stores history in
+a sqlite3 file. You can retrieve the history and pass it to
+[`fuzzel`](https://codeberg.org/dnkl/fuzzel) with the provided
+`pyclipmon-pick` tool.
+
+Install `meson`, `sqlite3` development package (`sqlite-devel` on
+Fedora), `fuzzel` and `wl-clipboard`. Build with:
+
+```
+meson setup build
+ninja -C build
+```
+
+Example sway config:
+
+```
+bindsym $mod+v exec ~/.local/bin/pyclipmon-pick
+```
