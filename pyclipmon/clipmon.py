@@ -13,7 +13,7 @@ import psutil
 from pywayland.client import Display
 from pywayland.protocol.wayland import WlRegistry, WlSeat
 
-from zwlr_data_control import zwlr_data_control_manager_v1
+from pyclipmon.zwlr_data_control import zwlr_data_control_manager_v1
 
 SENTINEL = '__PYCLIPMON__'
 RECEIVE_TIMEOUT_S = 2

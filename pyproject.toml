@@ -11,10 +11,11 @@ dependencies = [
 ]
 
 [project.scripts]
-pyclipmon = "clipmon:main"
+pyclipmon = "pyclipmon.clipmon:main"
 
-[tool.setuptools]
-py-modules = ["clipmon"]
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 120
