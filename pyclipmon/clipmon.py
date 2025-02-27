@@ -1,3 +1,4 @@
+import re
 import argparse
 import contextlib
 import logging
@@ -32,6 +33,11 @@ manager_proxy = None
 seat_proxy = None
 offers = {}
 emacs_running_at_start = False
+
+special_chars = re.escape(r'!\'"@#$&*()<>[];/')
+re_password = re.compile(rf'^[a-zA-Z\d{special_chars}]' + r'{8,}$')
+re_special = re.compile(rf'[{special_chars}]')
+re_digit = re.compile(r'\d')
 
 
 class Selection:
@@ -140,8 +146,17 @@ class Selection:
         for mime_type in ('text/plain;charset=utf-8', 'text/plain', 'STRING'):
             text = self.data.get(mime_type, '').strip()
             if text:
-                save_history(self.name, text)
+                if could_be_a_password(text.decode()):
+                    self.log.info('not storing a possible password')
+                else:
+                    save_history(self.name, text)
                 return
+
+
+def could_be_a_password(text):
+    if not re_password.search(text):
+        return False
+    return len(re_special.findall(text)) > 1 and len(re_digit.findall(text)) > 1
 
 
 def read_from_pipe(fd):
